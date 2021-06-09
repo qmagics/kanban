@@ -19,26 +19,23 @@
         />
       </el-form-item>
 
-      <el-tooltip v-model="capsTooltip" content="Caps lock is On" placement="right" manual>
-        <el-form-item prop="Password">
-          <span class="svg-container">
-            <svg-icon name="password" />
-          </span>
-          <el-input
-            :key="passwordType"
-            v-model="vm.Password"
-            :type="passwordType"
-            placeholder="请输入密码"
-            name="password"
-            tabindex="2"
-            autocomplete="on"
-            @blur="capsTooltip = false"
-          />
-          <span class="show-pwd" @click="showPwd">
-            <svg-icon :name="passwordType === 'password' ? 'eye' : 'eye-open'" />
-          </span>
-        </el-form-item>
-      </el-tooltip>
+      <el-form-item prop="Password">
+        <span class="svg-container">
+          <svg-icon name="password" />
+        </span>
+        <el-input
+          :key="passwordType"
+          v-model="vm.Password"
+          :type="passwordType"
+          placeholder="请输入密码"
+          name="password"
+          tabindex="2"
+          autocomplete="on"
+        />
+        <span class="show-pwd" @click="togglePwd">
+          <svg-icon :name="passwordType === 'password' ? 'eye' : 'eye-open'" />
+        </span>
+      </el-form-item>
 
       <el-button
         :loading="loading"
@@ -52,8 +49,9 @@
 
 <script lang="ts">
 import { login } from "@/service/user";
-import { useRouter } from "vue-router";
-import { defineComponent, reactive, ref } from "vue";
+import { useRouter, useRoute } from "vue-router";
+import { defineComponent, reactive, ref, watch, watchEffect } from "vue";
+import { ElMessage } from "element-plus";
 
 export default defineComponent({
   name: "Login",
@@ -66,25 +64,33 @@ export default defineComponent({
     });
 
     const rules = {};
-
     const capsTooltip = ref(false);
     const passwordType = ref("password");
     const loading = ref(false);
     const router = useRouter();
+    const route = useRoute();
+    const redirect = ref("");
+    const otherQuery = ref({});
 
     const handleLogin = async () => {
       loading.value = true;
       try {
-        await login(vm);
-        router.push({
-          path: "/",
-        });
+        const { bl, msg } = await login(vm);
+
+        if (bl) {
+          router.push({
+            path: redirect.value || "/",
+            query: otherQuery.value,
+          });
+        } else {
+          ElMessage.error(msg);
+        }
       } finally {
         loading.value = false;
       }
     };
 
-    const showPwd = () => {
+    const togglePwd = () => {
       if (passwordType.value === "password") {
         passwordType.value = "";
       } else {
@@ -92,111 +98,36 @@ export default defineComponent({
       }
     };
 
+    function getOtherQuery(query: any) {
+      return Object.keys(query).reduce((acc: any, cur) => {
+        if (cur !== "redirect") {
+          acc[cur] = query[cur];
+        }
+        return acc;
+      }, {});
+    }
+
+    watchEffect(() => {
+      const query: any = route.query;
+      if (query) {
+        redirect.value = query.redirect;
+        otherQuery.value = getOtherQuery(query);
+      }
+    });
+
     return {
       vm,
       rules,
       loading,
-      handleLogin,
       capsTooltip,
       passwordType,
-      showPwd,
+      redirect,
+      otherQuery,
+      handleLogin,
+      togglePwd,
     };
   },
 });
-
-// export default {
-//   name: "Login",
-//   data() {
-//     return {
-//       loginForm: {
-//         Account: "",
-//         Password: "",
-//         Token: "",
-//       },
-//       loginRules: {},
-//       passwordType: "password",
-//       capsTooltip: false,
-//       loading: false,
-//       showDialog: false,
-//       redirect: undefined,
-//       otherQuery: {},
-//     };
-//   },
-//   watch: {
-//     $route: {
-//       handler: function (route) {
-//         const query = route.query;
-//         if (query) {
-//           this.redirect = query.redirect;
-//           this.otherQuery = this.getOtherQuery(query);
-//         }
-//       },
-//       immediate: true,
-//     },
-//   },
-//   created() {
-//     // window.addEventListener('storage', this.afterQRScan)
-//   },
-//   mounted() {
-//     // if (this.loginForm.username === "") {
-//     //   this.$refs.username.focus();
-//     // } else if (this.loginForm.password === "") {
-//     //   this.$refs.password.focus();
-//     // }
-//   },
-//   destroyed() {
-//     // window.removeEventListener('storage', this.afterQRScan)
-//   },
-//   methods: {
-//     checkCapslock(e: any) {
-//       const { key } = e;
-//       this.capsTooltip = key && key.length === 1 && key >= "A" && key <= "Z";
-//     },
-//     showPwd() {
-//       if (this.passwordType === "password") {
-//         this.passwordType = "";
-//       } else {
-//         this.passwordType = "password";
-//       }
-//       // this.$nextTick(() => {
-//       //   this.$refs.password.focus();
-//       // });
-//     },
-//     handleLogin() {
-//       // this.$refs.loginForm.validate((valid) => {
-//       //   if (valid) {
-//       //     this.loading = true;
-//       //     login({
-//       //       rrr: 1,
-//       //     }).then();
-//       //     // this.$store
-//       //     //   .dispatch("user/login", this.loginForm)
-//       //     //   .then(() => {
-//       //     //     this.$router.push({
-//       //     //       path: this.redirect || "/",
-//       //     //       query: this.otherQuery,
-//       //     //     });
-//       //     //     this.loading = false;
-//       //     //   })
-//       //     //   .finally(() => {
-//       //     //     this.loading = false;
-//       //     //   });
-//       //   } else {
-//       //     console.log("error submit!!");
-//       //     return false;
-//       //   }
-//       // });
-//     },
-//     getOtherQuery(query: any) {
-//       return Object.keys(query).reduce((acc: any, cur) => {
-//         if (cur !== "redirect") {
-//           acc[cur] = query[cur];
-//         }
-//         return acc;
-//       }, {});
-//     },
-//   },
-// };
 </script>
 
 <style lang="scss">

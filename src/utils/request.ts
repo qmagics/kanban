@@ -1,14 +1,6 @@
 import router from '@/router';
-import axios, { AxiosInstance, AxiosPromise, AxiosRequestConfig, CancelTokenSource } from 'axios';
-
-enum RequestState {
-    /** 请求被取消 */
-    REQUEST_CANCELED = "REQUEST_CANCELED"
-}
-
-interface AxiosPromiseWithAbort extends AxiosPromise {
-    abort?(msg?: RequestState): void
-}
+import axios, { AxiosInstance, AxiosRequestConfig, CancelTokenSource } from 'axios';
+import { RequestState, PromiseWithAbort, RequestResponse } from '@/types/request';
 
 const http: AxiosInstance = axios.create({
     // baseURL: process.env.VUE_APP_BASE_API,
@@ -69,11 +61,11 @@ http.interceptors.response.use(
  * @param config axios请求配置项
  * @returns 
  */
-export default function request(config: AxiosRequestConfig): AxiosPromiseWithAbort {
+export default function request(config: AxiosRequestConfig): PromiseWithAbort<RequestResponse> {
 
     const source: CancelTokenSource = axios.CancelToken.source();
 
-    const promise: AxiosPromiseWithAbort = http({
+    const promise: PromiseWithAbort = http({
         ...config,
         cancelToken: source.token
     });

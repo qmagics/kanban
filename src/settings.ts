@@ -1,8 +1,4 @@
-type ProjectSettings = {
-    title: string
-
-    shortTitle?: string
-}
+import { ProjectSettings } from "@/types/settings";
 
 const settings: ProjectSettings = {
     title: "一威看板",
